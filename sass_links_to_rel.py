@@ -41,17 +41,24 @@ def abs_paths_to_relatives(lines):
     for line in lines:
         i += 1
 
-        if re.search("use ['\"]~/", line):
-            sass_path = re.match("^@use ['\"]~/(.+)['\"]", line).group(1)
+        if re.search("@(?:use|forward) ['\"]~/", line):
+            sass_path = re.match("^@(?:use|forward) ['\"]~/(.+)['\"]", line).group(1)
             path_called = get_sys_path(sass_path)
 
             if os.path.exists(path_called):
                 rel_path = os.path.relpath(path_called, os.path.dirname(path_scanned))
-                txt_to_replace = re.match("^@use ['\"](~/.+)['\"]", line).group(1)
+                txt_to_replace = re.match(
+                    "^@(?:use|forward) ['\"](~/.+)['\"]", line
+                ).group(1)
                 lines[i] = line.replace(txt_to_replace, rel_path, 1)
                 replacements_in_file += 1
             else:
-                print("Error, link ignored: line " + str(i) + " in " + os.path.abspath(path_scanned))
+                print(
+                    "Error, link ignored: line "
+                    + str(i + 1)
+                    + " in "
+                    + os.path.abspath(path_scanned)
+                )
     return [replacements_in_file, lines]
 
 
@@ -64,7 +71,8 @@ for path_scanned in paths_scanned_scss:
 
     replacements_in_file, new_content = abs_paths_to_relatives(lines)
     replacements += replacements_in_file
-    if(replacements_in_file > 0):
+
+    if replacements_in_file > 0:
         file_to_overwrite = open(path_scanned, "w")
         file_to_overwrite.writelines(new_content)
 
